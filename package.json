@@ -1,0 +1,46 @@
+{
+  "name": "opcup",
+  "version": "0.0.1",
+  "description": "Interactive CLI to scaffold an .opencode/ folder with frameworks, MCP tools, and skills for any project",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "robots4life",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robots4life/opencode-setup.git"
+  },
+  "type": "module",
+  "bin": {
+    "opcup": "bin/opcup.js"
+  },
+  "scripts": {
+    "lint": "eslint bin/ src/",
+    "format": "prettier --write 'bin/**/*.js' 'src/**/*.js'",
+    "check": "prettier --check 'bin/**/*.js' 'src/**/*.js' && eslint bin/ src/ && npm pkg fix"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "template/",
+    "docs/"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-setup",
+    "opencode-config",
+    "opencode-skills",
+    "opencode-mcp",
+    "cli",
+    "scaffold"
+  ],
+  "dependencies": {
+    "@clack/prompts": "^1.7.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6"
+  }
+}
