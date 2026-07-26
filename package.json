@@ -18,7 +18,7 @@
   "scripts": {
     "lint": "eslint bin/ src/",
     "format": "prettier --write 'bin/**/*.js' 'src/**/*.js'",
-    "check": "prettier --check 'bin/**/*.js' 'src/**/*.js' && eslint bin/ src/ && npm pkg fix"
+    "check": "prettier --check 'bin/**/*.js' 'src/**/*.js' && eslint bin/ src/ && npm pkg fix && npm pack --dry-run > /dev/null"
   },
   "files": [
     "bin/",
