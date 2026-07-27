@@ -1,6 +1,6 @@
 {
   "name": "opcup",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Interactive CLI to scaffold an .opencode/ folder with frameworks, MCP tools, and skills for any project",
   "license": "MIT",
   "engines": {
