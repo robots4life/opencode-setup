@@ -38,6 +38,7 @@ Read the following files from .opencode/commands/ in full, in order:
 32. browser-support.md
 33. svelte-events.md
 34. svelte-easing.md
+35. migrating-to-sveltekit-3.md
 
 Do not skip any file. Read every file from its first line to its last
 line. Do not summarize. Do not abbreviate. Read them all in full.

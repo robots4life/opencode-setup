@@ -42,6 +42,7 @@ export const FRAMEWORKS = [
       "browser-support",
       "svelte-events",
       "svelte-easing",
+      "migrating-to-sveltekit-3",
       "svelte-all",
     ],
     deps: { "@sveltejs/opencode": "^0.1.9" },

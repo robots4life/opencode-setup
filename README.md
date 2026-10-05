@@ -22,7 +22,7 @@ A `.opencode/` folder is generated automatically.
 ├── package.json        # dependencies
 ├── .gitignore          # bun.lock, node_modules, token files
 ├── .npmrc              # package-lock=false
-└── commands/           # 34 Svelte + 3 generic skills
+└── commands/           # 35 Svelte + 3 generic skills
 ```
 
 OpenCode picks these up automatically.
@@ -33,7 +33,7 @@ No manual setup needed.
 
 | Category           | Options                                                                  |
 | ------------------ | ------------------------------------------------------------------------ |
-| **Frameworks**     | Svelte 5 / SvelteKit — `@sveltejs/opencode` plugin + 34 skills           |
+| **Frameworks**     | Svelte 5 / SvelteKit 3 — `@sveltejs/opencode` plugin + 35 skills         |
 | **MCP Tools**      | Sanity (mcp.sanity.io)                                                   |
 | **Generic Skills** | Pure Commit (auto-group commits), Env Safety (secrets), Docs Conventions |
 
@@ -47,7 +47,7 @@ No manual setup needed.
 
 ## Svelte Skills
 
-When Svelte is selected, 34 command files are generated covering the full Svelte 5 + SvelteKit API:
+When Svelte is selected, 35 command files are generated covering the full Svelte 5 + SvelteKit API:
 
 | Skill                                                                                                                                                             | Topics                                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -85,7 +85,8 @@ When Svelte is selected, 34 command files are generated covering the full Svelte
 | [`browser-support.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/031-browser-support/browser-support.md)                   | Minimum browser versions                                    |
 | [`svelte-events.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/032-svelte-events/svelte-events.md)                         | `on()` from `svelte/events` for event delegation            |
 | [`svelte-easing.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/033-svelte-easing/svelte-easing.md)                         | 30 easing functions for custom transitions                  |
-| [`svelte-all.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/svelte-all.md)                                                 | Meta-command — loads all 34 files at once                   |
+| [`migrating-to-sveltekit-3.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/034-migrating-to-sveltekit-3/migrating-to-sveltekit-3.md) | SvelteKit 2 → 3 migration — deps, config, API moves         |
+| [`svelte-all.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/svelte-all.md)                                                 | Meta-command — loads all 35 files at once                   |
 
 Use `/svelte` in OpenCode for quick reference, or `/svelte-all` to load the complete knowledge base.
 
