@@ -1,14 +1,9 @@
-import {
-  multiselect,
-  select,
-  confirm,
-  outro,
-  cancel,
-  isCancel,
-} from "@clack/prompts";
+import * as clack from "@clack/prompts";
 import { FRAMEWORKS, MCPS, SKILLS } from "./registry.js";
 
-export async function promptSelections(existing) {
+export async function promptSelections(existing, prompts = clack) {
+  const { multiselect, select, confirm, outro, cancel, isCancel } = prompts;
+
   const frameworkIds = await multiselect({
     required: false,
     message: "Select frameworks:",

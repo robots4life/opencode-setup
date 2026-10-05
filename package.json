@@ -16,9 +16,11 @@
     "opcup": "bin/opcup.js"
   },
   "scripts": {
-    "lint": "eslint bin/ src/",
-    "format": "prettier --write 'bin/**/*.js' 'src/**/*.js'",
-    "check": "prettier --check 'bin/**/*.js' 'src/**/*.js' && eslint bin/ src/ && npm pkg fix && npm pack --dry-run > /dev/null"
+    "lint": "eslint bin/ src/ test/",
+    "format": "prettier --write 'bin/**/*.js' 'src/**/*.js' 'test/**/*.js'",
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage",
+    "check": "prettier --check 'bin/**/*.js' 'src/**/*.js' 'test/**/*.js' && eslint bin/ src/ test/ && npm pkg fix && npm pack --dry-run > /dev/null && node --test"
   },
   "files": [
     "bin/",
