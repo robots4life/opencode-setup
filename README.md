@@ -19,10 +19,12 @@ A `.opencode/` folder is generated automatically.
 ```
 .opencode/
 ├── opencode.json       # plugins + MCP config
-├── package.json        # dependencies
-├── .gitignore          # bun.lock, node_modules, token files
+├── package.json        # dependencies (when a framework is selected)
+├── .gitignore          # bun.lock(b), node_modules, package-lock.json, tokens/
 ├── .npmrc              # package-lock=false
-└── commands/           # 35 Svelte + 3 generic skills
+├── commands/           # 36 Svelte + 3 generic skills
+├── docs/               # bundled Svelte + example documentation
+└── tokens/             # MCP token placeholders (when an MCP is selected)
 ```
 
 OpenCode picks these up automatically.
@@ -33,7 +35,7 @@ No manual setup needed.
 
 | Category           | Options                                                                  |
 | ------------------ | ------------------------------------------------------------------------ |
-| **Frameworks**     | Svelte 5 / SvelteKit 3 — `@sveltejs/opencode` plugin + 35 skills         |
+| **Frameworks**     | Svelte 5 / SvelteKit 3 — `@sveltejs/opencode` plugin + 36 skills         |
 | **MCP Tools**      | Sanity (mcp.sanity.io)                                                   |
 | **Generic Skills** | Pure Commit (auto-group commits), Env Safety (secrets), Docs Conventions |
 
@@ -47,7 +49,7 @@ No manual setup needed.
 
 ## Svelte Skills
 
-When Svelte is selected, 35 command files are generated covering the full Svelte 5 + SvelteKit API:
+When Svelte is selected, 36 command files are generated covering the full Svelte 5 + SvelteKit 3 API:
 
 | Skill                                                                                                                                                             | Topics                                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -56,7 +58,7 @@ When Svelte is selected, 35 command files are generated covering the full Svelte
 | [`attach.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/002-attach/attach.md)                                              | `{@attach ...}` — modern replacement for `use:action`       |
 | [`function-bindings.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/003-function-bindings/function-bindings.md)             | `bind:value={get, set}` — function bindings                 |
 | [`parallel-loading.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/004-parallel-loading/parallel-loading.md)                | Data loading, invalidation, `getRequestEvent`               |
-| [`error-handling.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/005-error-handling/error-handling.md)                      | `handleError`, `handleValidationError`                      |
+| [`error-handling.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/005-error-handling/error-handling.md)                      | `handleError` kinds (`app`/`framework`/`validation`/`unknown`), `App.Error` |
 | [`loading-states.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/006-loading-states/loading-states.md)                      | `$effect.pending()`, `settled()`, `tick()`                  |
 | [`reactive-classes.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/007-reactive-classes/reactive-classes.md)                | `SvelteMap`, `SvelteSet`, `SvelteURL`, `MediaQuery`         |
 | [`hydratable-imperative.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/008-hydratable-imperative/hydratable-imperative.md) | `hydratable()`, `mount()`, `hydrate()`, `fork()`            |
@@ -78,7 +80,7 @@ When Svelte is selected, 35 command files are generated covering the full Svelte
 | [`debugging.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/024-debugging/debugging.md)                                     | VS Code, Chrome DevTools breakpoints                        |
 | [`compiler-errors.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/025-compiler-errors/compiler-errors.md)                   | Complete error code reference                               |
 | [`runtime-errors.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/026-runtime-errors/runtime-errors.md)                      | All runtime errors and warnings                             |
-| [`type-defs.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/027-type-defs/type-defs.md)                                     | Full `@sveltejs/kit` TypeScript API reference               |
+| [`type-defs.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/027-type-defs/type-defs.md)                                     | Full SvelteKit 3 TypeScript API reference (`@sveltejs/kit/*`, `$app/*`) |
 | [`faq.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/028-faq/faq.md)                                                       | Svelte + SvelteKit troubleshooting                          |
 | [`compiler-warnings.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/029-compiler-warnings/compiler-warnings.md)             | A11y checks, CSS warnings, deprecated features              |
 | [`svelte-5-migration.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/030-svelte-5-migration/svelte-5-migration.md)          | Upgrade guide: Svelte 4 → 5                                 |
@@ -86,7 +88,7 @@ When Svelte is selected, 35 command files are generated covering the full Svelte
 | [`svelte-events.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/032-svelte-events/svelte-events.md)                         | `on()` from `svelte/events` for event delegation            |
 | [`svelte-easing.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/033-svelte-easing/svelte-easing.md)                         | 30 easing functions for custom transitions                  |
 | [`migrating-to-sveltekit-3.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/034-migrating-to-sveltekit-3/migrating-to-sveltekit-3.md) | SvelteKit 2 → 3 migration — deps, config, API moves         |
-| [`svelte-all.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/svelte-all.md)                                                 | Meta-command — loads all 35 files at once                   |
+| [`svelte-all.md`](https://github.com/robots4life/opencode-setup/blob/main/template/commands/svelte/svelte-all.md)                                                 | Meta-command — loads the other 35 files at once             |
 
 Use `/svelte` in OpenCode for quick reference, or `/svelte-all` to load the complete knowledge base.
 
@@ -96,14 +98,23 @@ If `.opencode/` already exists, you can choose how to proceed:
 
 | Mode          | Behavior                                                                                                                              |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Merge**     | Adds new skills without touching your existing commands, `opencode.json`, or `package.json`. Safe for adding to a configured project. |
-| **Overwrite** | Wipes `commands/` and `tokens/` completely, then regenerates from your new selection. Use when you want a clean slate.                |
+| **Merge**     | Adds missing commands, docs, and token placeholders, and merges plugins, MCP configs, and dependencies. Existing entries are never overwritten. Safe for adding to a configured project. |
+| **Overwrite** | Wipes `commands/` and `docs/`, then regenerates everything from your new selection. `tokens/` is removed only when no MCP is selected; existing token files are otherwise preserved. |
 
-`opencode.json` and `package.json` are always regenerated to match your current selection — stale plugins and MCP configs are cleaned up.
+In Overwrite mode, `opencode.json` and `package.json` are regenerated from your selection, so stale plugins and MCP configs are removed (if no framework is selected, no `package.json` is written). Merge mode only adds missing entries.
 
 ## Requirements
 
 - Node.js 20+
+- Generated SvelteKit 3 skills target Node.js 22.17+
+
+## Development
+
+```sh
+npm test              # run the test suite (node:test)
+npm run test:coverage # same, with a coverage report
+npm run check         # format check, lint, pack validation, and tests
+```
 
 ## License
 
