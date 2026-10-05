@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { FRAMEWORKS, MCPS, SKILLS } from "./registry.js";
+import { findCommandFile } from "./find-command.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = path.join(__dirname, "..", "template");
@@ -85,19 +86,21 @@ export function generate(targetDir, selections) {
     fs.mkdirSync(docsDir, { recursive: true });
 
     if (needsExampleDoc) {
-      const exampleDoc = path.join(sourceDocsDir, "001-example-doc.md");
-      if (fs.existsSync(exampleDoc)) {
-        copy(exampleDoc, path.join(docsDir, "001-example-doc.md"));
-      }
+      copy(
+        path.join(sourceDocsDir, "001-example-doc.md"),
+        path.join(docsDir, "001-example-doc.md"),
+      );
     }
 
     if (needsSvelteDocs) {
-      const mediumDoc = path.join(sourceDocsDir, "002-svelte-medium.md");
-      const fullDoc = path.join(sourceDocsDir, "003-svelte-full.md");
-      if (fs.existsSync(mediumDoc))
-        copy(mediumDoc, path.join(docsDir, "002-svelte-medium.md"));
-      if (fs.existsSync(fullDoc))
-        copy(fullDoc, path.join(docsDir, "003-svelte-full.md"));
+      copy(
+        path.join(sourceDocsDir, "002-svelte-medium.md"),
+        path.join(docsDir, "002-svelte-medium.md"),
+      );
+      copy(
+        path.join(sourceDocsDir, "003-svelte-full.md"),
+        path.join(docsDir, "003-svelte-full.md"),
+      );
     }
   } else if (fs.existsSync(docsDir)) {
     fs.rmSync(docsDir, { recursive: true });
@@ -151,14 +154,4 @@ function writeJson(filePath, obj) {
 
 function copy(src, dest) {
   fs.copyFileSync(src, dest);
-}
-
-function findCommandFile(name, root) {
-  const fileName = `${name}.md`;
-  for (const entry of fs.readdirSync(root, { recursive: true })) {
-    if (entry === fileName || entry.endsWith(`/${fileName}`)) {
-      return path.join(root, entry);
-    }
-  }
-  return null;
 }

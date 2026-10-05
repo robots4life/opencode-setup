@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { FRAMEWORKS, MCPS, SKILLS } from "./registry.js";
+import { findCommandFile } from "./find-command.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE = path.join(__dirname, "..", "template");
@@ -114,22 +115,21 @@ export function merge(targetDir, selections) {
   }
 
   if (needsExampleDoc) {
-    const exampleDoc = path.join(sourceDocsDir, "001-example-doc.md");
     const exampleDest = path.join(docsDir, "001-example-doc.md");
-    if (fs.existsSync(exampleDoc) && !fs.existsSync(exampleDest)) {
-      copy(exampleDoc, exampleDest);
+    if (!fs.existsSync(exampleDest)) {
+      copy(path.join(sourceDocsDir, "001-example-doc.md"), exampleDest);
     }
   }
 
   if (needsSvelteDocs) {
-    const mediumDoc = path.join(sourceDocsDir, "002-svelte-medium.md");
-    const fullDoc = path.join(sourceDocsDir, "003-svelte-full.md");
     const mediumDest = path.join(docsDir, "002-svelte-medium.md");
     const fullDest = path.join(docsDir, "003-svelte-full.md");
-    if (fs.existsSync(mediumDoc) && !fs.existsSync(mediumDest))
-      copy(mediumDoc, mediumDest);
-    if (fs.existsSync(fullDoc) && !fs.existsSync(fullDest))
-      copy(fullDoc, fullDest);
+    if (!fs.existsSync(mediumDest)) {
+      copy(path.join(sourceDocsDir, "002-svelte-medium.md"), mediumDest);
+    }
+    if (!fs.existsSync(fullDest)) {
+      copy(path.join(sourceDocsDir, "003-svelte-full.md"), fullDest);
+    }
   }
 
   return opencodeDir;
@@ -145,14 +145,4 @@ function writeJson(filePath, obj) {
 
 function copy(src, dest) {
   fs.copyFileSync(src, dest);
-}
-
-function findCommandFile(name, root) {
-  const fileName = `${name}.md`;
-  for (const entry of fs.readdirSync(root, { recursive: true })) {
-    if (entry === fileName || entry.endsWith(`/${fileName}`)) {
-      return path.join(root, entry);
-    }
-  }
-  return null;
 }
