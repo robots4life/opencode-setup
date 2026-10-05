@@ -370,8 +370,8 @@ Replaces the `class:` directive from Svelte 4.
 
 ## Async Svelte
 
-Available in Svelte 5.36+. Enable with `experimental.async: true`
-in `svelte.config.js` (flag removed in Svelte 6).
+Available in Svelte 5.36+. Enable with `compilerOptions.experimental.async: true`
+in the `sveltekit(...)` plugin options in `vite.config.js` (flag removed in Svelte 6).
 
 ### Where you can use `await`
 
@@ -426,38 +426,42 @@ project.
 ```json
 {
   "type": "module",
+  "imports": {
+    "#lib": "./src/lib/index.js",
+    "#lib/*": "./src/lib/*"
+  },
   "devDependencies": {
-    "@sveltejs/adapter-auto": "^6.0.0",
-    "@sveltejs/kit": "^2.0.0",
-    "@sveltejs/vite-plugin-svelte": "^5.0.0",
-    "svelte": "^5.0.0",
-    "vite": "^6.0.0"
+    "@sveltejs/adapter-auto": "^8.0.0",
+    "@sveltejs/kit": "^3.0.0",
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
+    "svelte": "^5.57.1",
+    "typescript": "^6.0.0",
+    "vite": "^8.0.12"
   }
 }
 ```
 
-`vite.config.js`:
+Requires Node `>=22.17`.
+
+`vite.config.js` — in SvelteKit 3 all project config is passed to the `sveltekit(...)` plugin here (`config.kit.*` options become top-level plugin options, and `svelte.config.js` is no longer supported):
 
 ```js
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
-export default defineConfig({ plugins: [sveltekit()] });
-```
-
-`svelte.config.js`:
-
-```js
 import adapter from "@sveltejs/adapter-auto";
-export default { kit: { adapter: adapter() } };
+
+export default defineConfig({
+  plugins: [sveltekit({ adapter: adapter() })]
+});
 ```
 
 ### Project structure
 
 | Path                  | Purpose                                                                         |
 | --------------------- | ------------------------------------------------------------------------------- |
-| `src/lib/`            | Shared code (aliased as `$lib`)                                                 |
-| `src/lib/server/`     | Server-only modules (`$lib/server`)                                             |
-| `src/params/`         | Route parameter matchers                                                        |
+| `src/lib/`            | Shared code (aliased as `#lib`)                                                 |
+| `src/lib/server/`     | Server-only modules (`#lib/server`)                                             |
+| `src/params.ts`       | Route parameter matchers (`defineParams`)                                       |
 | `src/routes/`         | Pages and components                                                            |
 | `src/app.html`        | HTML template                                                                   |
 | `src/hooks.client.js` | Client hooks                                                                    |
@@ -465,13 +469,22 @@ export default { kit: { adapter: adapter() } };
 | `static/`             | Public static assets                                                            |
 | `.svelte-kit/`        | Auto-generated, do not commit, do not import server-only code into client files |
 
-### `$lib` alias
+### `#lib` alias
 
-Import from `src/lib/` without relative paths:
+SvelteKit no longer generates the `$lib` alias automatically. Declare a `#lib` alias using Node subpath imports in `package.json`, then import from `src/lib/` without relative paths. File extensions are required:
+
+```json
+{
+  "imports": {
+    "#lib": "./src/lib/index.js",
+    "#lib/*": "./src/lib/*"
+  }
+}
+```
 
 ```svelte
 <script>
-  import Button from '$lib/Button.svelte';
+  import Button from '#lib/Button.svelte';
 </script>
 ```
 
@@ -506,7 +519,7 @@ in route files for type-safe props and loaders.
 ### Colocation
 
 Non-`+` files in route folders are ignored by the router — colocate
-utilities and components. For cross-route imports, use `$lib`.
+utilities and components. For cross-route imports, use `#lib`.
 
 ---
 
@@ -626,9 +639,9 @@ export async function load({ depends }) {
 }
 
 // In component — invalidate
-import { invalidate, invalidateAll } from "$app/navigation";
+import { invalidate, refreshAll } from "$app/navigation";
 await invalidate("app:random"); // rerun loads that depend on this key
-await invalidateAll(); // rerun all loads
+await refreshAll(); // rerun all loads, preserving page.state
 ```
 
 ### `untrack`
@@ -645,7 +658,7 @@ export async function load({ untrack, url }) {
 
 ### `getRequestEvent`
 
-Retrieves the current server `RequestEvent` from `$app/server` (v2.20+).
+Retrieves the current server `RequestEvent` from `$app/server`.
 Lets shared functions access `locals`, `url`, etc. without parameter
 passing.
 
@@ -735,17 +748,22 @@ restores focus. Do NOT use `onsubmit` for progressive enhancement.
 
 Customize with a callback that returns a handler. Use `applyAction` to
 apply form data without full invalidation. For manual fetch in
-`onsubmit`, use `deserialize` and `applyAction`/`invalidateAll` — never
-`JSON.parse` for action responses.
+`onsubmit`, use `deserialize` and `applyAction`/`refreshAll` — never
+`JSON.parse` for action responses. When `use:enhance` targets an action
+on a different page, SvelteKit now navigates to that page on submit.
 
 ---
 
 ## Remote Functions
 
-Experimental feature. Enable in `svelte.config.js`:
+Experimental feature. Enable in the `sveltekit(...)` plugin in
+`vite.config.js`:
 
 ```js
-export default { kit: { experimental: { remoteFunctions: true } } };
+sveltekit({
+  compilerOptions: { experimental: { async: true } },
+  experimental: { remoteFunctions: true }
+});
 ```
 
 Type-safe server-only functions called from the client. Place
@@ -838,10 +856,14 @@ with non-prerendered args.
 
 ### Validation and security
 
-Use Standard Schema for `query`, `command`, `prerender`. Failures
-return 400. Customize with `handleValidationError` hook. `form` doesn't
-take a schema — validate `FormData` manually. Redirects allowed in
-`query`, `form`, `prerender`. Not allowed in `command`.
+Use Standard Schema for `query`, `command`, `prerender`. Failures return
+a generic 400. Customize with the server `handleError` hook, which
+receives `kind: 'validation'` and the validation `issues`. `form` doesn't
+take a schema — validate `FormData` manually. Inside `query` functions,
+accessing `event.url`, `event.params` or `event.route` throws — pass
+values as arguments. Form inputs must use `field.as('text')`; manually
+named inputs are rejected. Redirects allowed in `query`, `form`,
+`prerender`. Not allowed in `command`.
 
 ---
 
@@ -852,8 +874,8 @@ take a schema — validate `FormData` manually. Redirects allowed in
 `export const prerender = true|false|'auto'` in page or layout modules.
 `true` generates static HTML, `false` skips, `'auto'` includes in SSR
 manifest. Applies to pages and `+server.js` routes (inherit parent
-flags). Dynamic routes need `entries()` or
-`config.kit.prerender.entries`. Do NOT prerender pages with form
+flags). Dynamic routes need `entries()` or the
+`prerender.entries` plugin option. Do NOT prerender pages with form
 actions or `url.searchParams` server-side.
 
 ### `entries`
@@ -903,8 +925,10 @@ Make a segment optional. `[[lang]]/home` maps both `/home` and
 
 ### Matchers `[param=type]`
 
-Constrain params in `src/params/type.js`. Only matching values route;
-others fall back or 404.
+Declare all matchers in a single `src/params.ts` (or `src/params.js`)
+using `defineParams` from `@sveltejs/kit/params`. A matcher is a
+function returning a parsed value (or `undefined`), or a Standard
+Schema. Only matching values route; others fall back or 404.
 
 ### Group directories `(app)`
 
@@ -931,9 +955,11 @@ Use grouping judiciously — overuse complicates nesting.
 
 ### Shared hooks
 
-- `handleError({ error, event, status, message })`: catches unexpected
-  runtime errors on server or client. Log, return safe object for
-  `$page.error`
+- `handleError({ kind, error, event })`: called for every error on
+  server or client. `kind` is `'app'`, `'framework'`, `'validation'`
+  or `'unknown'`. Log, and return an `App.Error` (optionally overriding
+  `status`/`message`) for `page.error`. Types come from
+  `@sveltejs/kit/hooks` (`HandleServerError`/`HandleClientError`)
 
 ### Universal hooks
 
@@ -951,9 +977,11 @@ tailors output for the deployment target.
 
 ### Adapters
 
-Configured in `svelte.config.js` under `kit.adapter`. Platforms:
-Cloudflare, Netlify, Node, static, Vercel, plus community adapters.
-Some expose `platform` (e.g. Cloudflare's `env`) via `event.platform`.
+Configured via the `adapter` option of the `sveltekit(...)` plugin in
+`vite.config.js`. Platforms: Cloudflare, Netlify, Node, static, Vercel,
+plus community adapters. On Cloudflare, import `env`/`ctx` from
+`cloudflare:workers` rather than using `event.platform`, and read `cf`
+from the `Request` object.
 
 ### Build guard
 
@@ -1009,35 +1037,43 @@ Set any value to `"false"` to disable.
 
 ## Server-Only Modules
 
-- `$env/static/private` and `$env/dynamic/private` — only importable
-  into server-only files. Prevents leaking secrets to client
+- `$app/env/private` — only importable into server-only files.
+  Prevents leaking secrets to the client
 - `$app/server` (e.g. `read()`) — restricted to server-side code
-- `*.server.js` naming or `src/lib/server/` placement — any import
+- A `server` segment in a filename (`*.server.js`, `server.ts`) or any
+  `server` directory (except `src/routes` and `static`) — any import
   chain to these from public code triggers a build error
-- `$lib` alias resolves to `src/lib/`
+- `#lib` resolves to `src/lib/` via `package.json#imports`
 
 ---
 
 ## Shallow Routing
 
-Create history entries without full navigation using `pushState` /
-`replaceState` from `$app/navigation`. Read/write `page.state` from
-`$app/state`.
+Create history entries without full navigation using `goto(url, {
+shallow: true, state })` from `$app/navigation` (`pushState` /
+`replaceState` are deprecated). Read/write `page.state` from
+`$app/state`. Pass `persistState: true` to reapply state after reload.
+Shallow routing now fires the navigation hooks — filter them with the
+`shallow` property.
 
 Modal pattern:
 
 ```svelte
 <script>
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
 </script>
+<button onclick={() => goto('/photos/1', { shallow: true, state: { showModal: true } })}>
+  open
+</button>
 {#if page.state.showModal}
   <Modal />
 {/if}
 ```
 
 To embed a route's page component without navigation, preload data with
-`preloadData(href)` then `pushState`. SSR and initial load have empty
-`page.state`. Shallow routing requires JS.
+`preloadData(href)` then `goto(href, { shallow: true })`. SSR and initial
+load have empty `page.state`. Shallow routing requires JS.
 
 ---
 
@@ -1045,17 +1081,17 @@ To embed a route's page component without navigation, preload data with
 
 ### From `@sveltejs/kit`
 
-| Import                       | Purpose                                  |
-| ---------------------------- | ---------------------------------------- |
-| `error(status, msg)`         | Throw HTTP error, halt processing        |
-| `fail(status, data)`         | Return form action failure (no throw)    |
-| `isActionFailure(result)`    | Type-guard for `fail` results            |
-| `isHttpError(e)`             | Type-guard for `error` results           |
-| `isRedirect(e)`              | Type-guard for `redirect` results        |
-| `json(data)`                 | Build a JSON `Response`                  |
-| `normalizeUrl(url)`          | Strip internal suffixes/trailing slashes |
-| `redirect(status, location)` | Throw redirect response                  |
-| `text(data)`                 | Build a plain-text `Response`            |
+| Import                              | Purpose                                  |
+| ----------------------------------- | ---------------------------------------- |
+| `error(status, msg, extras?)`       | Throw HTTP error, halt processing        |
+| `fail(status, data)`                | Return form action failure (no throw)    |
+| `isActionFailure(result)`           | Type-guard for `fail` results            |
+| `isHttpError(e)`                    | Type-guard for `error` results           |
+| `isRedirect(e)`                     | Type-guard for `redirect` results        |
+| `normalizeUrl(url)`                 | Strip internal suffixes/trailing slashes |
+| `redirect(status, location, opts?)` | Throw redirect response                  |
+
+`json(...)` and `text(...)` are deprecated — use `Response.json(...)` and `new Response(text)`. External redirects must opt in with `{ external: true }` (or an origin allowlist).
 
 ### From `@sveltejs/kit/hooks`
 
@@ -1078,24 +1114,23 @@ To embed a route's page component without navigation, preload data with
 | `afterNavigate(cb)`        | Run after every client-side navigation     |
 | `beforeNavigate(cb)`       | Intercept and optionally cancel navigation |
 | `disableScrollHandling()`  | Disable automatic scroll reset             |
-| `goto(url, opts?)`         | Programmatic navigation                    |
+| `goto(url, opts?)`         | Programmatic navigation / shallow routing  |
 | `invalidate(key)`          | Rerun loads that depend on key             |
-| `invalidateAll()`          | Rerun all loads for current page           |
+| `refreshAll()`             | Rerun all loads, keeping `page.state`      |
 | `onNavigate(cb)`           | Hook before client-side navigations        |
 | `preloadCode(href)`        | Import route modules, no data              |
 | `preloadData(href)`        | Load code and data for a route             |
-| `pushState(url, state)`    | Shallow routing history entry              |
-| `replaceState(url, state)` | Replace current history entry              |
 
-All navigation hooks must be called at component initialization.
+`invalidateAll` is deprecated in favour of `refreshAll`. `goto` options: `shallow`, `replace`, `reset: false` (replaces `keepFocus`/`noScroll`), `refreshAll`. `goto` rejects for URLs that don't resolve to an in-app route. All navigation hooks must be called at component initialization.
 
 ### From `$app/paths`
 
-| Import                     | Purpose                               |
-| -------------------------- | ------------------------------------- |
-| `assets`                   | Absolute URL prefix for static assets |
-| `base`                     | Base path for the app                 |
-| `resolveRoute(id, params)` | Interpolate route ID with params      |
+| Import                   | Purpose                                 |
+| ------------------------ | --------------------------------------- |
+| `asset(file)`            | Resolve a static asset URL              |
+| `resolve(path, params?)` | Prefix base path / interpolate route ID |
+
+The deprecated `base`, `assets` and `resolveRoute` exports are removed. The leading `/` is gone from path/asset types — use `asset('foo.png')` and `resolve('blog/hello-world')`; only route IDs start with `/`.
 
 ### From `$app/server`
 
@@ -1114,14 +1149,15 @@ All navigation hooks must be called at component initialization.
 
 Do NOT use `$app/stores` — use `$app/state` instead.
 
-### From `$env/*`
+### From `$app/env/*`
 
-| Import                 | Client-safe?         | When                                       |
-| ---------------------- | -------------------- | ------------------------------------------ |
-| `$env/static/private`  | No                   | Compile-time private, dead-code eliminated |
-| `$env/static/public`   | Yes (`PUBLIC_` vars) | Compile-time public                        |
-| `$env/dynamic/private` | No                   | Runtime private (`process.env`)            |
-| `$env/dynamic/public`  | Yes                  | Runtime public                             |
+| Import             | Client-safe? | When                            |
+| ------------------ | ------------ | ------------------------------- |
+| `$app/env/private` | No           | Secrets, server-only            |
+| `$app/env/public`  | Yes          | Exposed via `public: true`      |
+| `$app/env`         | Yes          | `browser`, `building`, `dev`, `version` |
+
+Declared in `src/env.ts` with `defineEnvVars` from `@sveltejs/kit/env`. The old `$env/static/*` and `$env/dynamic/*` modules are deprecated.
 
 ---
 
@@ -1151,9 +1187,9 @@ library integration. Load when writing or reviewing Svelte components.
 
 | File                                                  | Size    | When to use                            |
 | ----------------------------------------------------- | ------- | -------------------------------------- |
-| [llms-small.txt](https://svelte.dev/llms-small.txt)   | ~40 KB  | Quick syntax check, single concept     |
-| [llms-medium.txt](https://svelte.dev/llms-medium.txt) | ~140 KB | Components, routing, load functions    |
-| [llms-full.txt](https://svelte.dev/llms-full.txt)     | ~350 KB | Full app architecture, hooks, advanced |
+| [llms-small.txt](https://svelte.dev/llms-small.txt)   | ~52 KB  | Quick syntax check, single concept     |
+| [llms-medium.txt](https://svelte.dev/llms-medium.txt) | ~850 KB | Components, routing, load functions    |
+| [llms-full.txt](https://svelte.dev/llms-full.txt)     | ~1.2 MB | Full app architecture, hooks, advanced |
 
 Package-level docs: [svelte/llms-small.txt](https://svelte.dev/docs/svelte/llms-small.txt),
 [kit/llms-small.txt](https://svelte.dev/docs/kit/llms-small.txt),

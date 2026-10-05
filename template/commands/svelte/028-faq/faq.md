@@ -142,8 +142,8 @@ If you'd like to include your application's version number or other information 
 
 ```ts
 // @errors: 2732
-/// file: svelte.config.js
-import pkg from "./package.json" with { type: "json" };
+/// file: vite.config.js
+import pkg from './package.json' with { type: 'json' };
 ```
 
 ## How do I fix the error I'm getting trying to include a package?
@@ -196,7 +196,7 @@ If you need access to the `document` or `window` variables or otherwise need cod
 ```js
 /// <reference types="@sveltejs/kit" />
 // ---cut---
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 if (browser) {
   // client-only code here
@@ -242,7 +242,7 @@ Finally, you may also consider using an `{#await}` block:
 ```svelte
 <!--- file: index.svelte --->
 <script>
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 
 	const promise = browser
 		? import('./BrowserComponent.svelte')

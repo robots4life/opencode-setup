@@ -11,7 +11,14 @@ In SvelteKit, if you have a `src/service-worker.js` file (or `src/service-worker
 
 ## Inside the service worker
 
-Inside the service worker you have access to the [`$service-worker` module]($service-worker), which provides you with the paths to all static assets, build files and prerendered pages. You're also provided with an app version string, which you can use for creating a unique cache name, and the deployment's `base` path. If your Vite config specifies `define` (used for global variable replacements), this will be applied to service workers as well as your server/client builds.
+In SvelteKit 3 the old `$service-worker` module is removed. Instead, import what you need from these modules:
+
+- [`$app/service-worker`]($app-service-worker) — `self`, typed as `ServiceWorkerGlobalScope`
+- [`$app/env`]($app-env) — `version`, for deployment-scoped cache names
+- [`$app/manifest`]($app-manifest) — `immutable`, `assets` and `prerendered` files
+- [`$app/paths`]($app-paths) — `resolve`/`asset` for the base path
+
+If your Vite config specifies `define` (used for global variable replacements), this will be applied to service workers as well as your server/client builds.
 
 The following example caches the built app and any files in `static` eagerly, and caches all other requests as they happen. This would make each page work offline once visited.
 
@@ -24,23 +31,17 @@ The following example caches the built app and any files in `static` eagerly, an
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
-// Ensures that the `$service-worker` import has proper type definitions
-/// <reference types="@sveltejs/kit" />
-
-// Only necessary if you have an import from `$env/static/public`
-/// <reference types="../.svelte-kit/ambient.d.ts" />
-
-import { build, files, version } from '$service-worker';
-
-// This gives `self` the correct types
-const self = /** @type {ServiceWorkerGlobalScope} */ (/** @type {unknown} */ (globalThis.self));
+import { self } from '$app/service-worker';
+import { version } from '$app/env';
+import { immutable, assets } from '$app/manifest';
+import { resolve } from '$app/paths';
 
 // Create a unique cache name for this deployment
 const CACHE = `cache-${version}`;
 
 const ASSETS = [
-	...build, // the app itself
-	...files  // everything in `static`
+	...immutable.map((asset) => resolve(asset.path)), // the Vite output
+	...assets.map((asset) => resolve(asset.path))     // everything in `static`
 ];
 
 self.addEventListener('install', (event) => {
@@ -72,7 +73,7 @@ self.addEventListener('fetch', (event) => {
 		const url = new URL(event.request.url);
 		const cache = await caches.open(CACHE);
 
-		// `build`/`files` can always be served from the cache
+		// `immutable`/`assets` can always be served from the cache
 		if (ASSETS.includes(url.pathname)) {
 			const response = await cache.match(url.pathname);
 
@@ -93,7 +94,7 @@ self.addEventListener('fetch', (event) => {
 			}
 
 			if (response.status === 200 && !response.headers.get('cache-control')?.includes('no-store')) {
-				cache.put(event.request, response.clone());
+				void cache.put(event.request, response.clone());
 			}
 
 			return response;
@@ -116,17 +117,35 @@ self.addEventListener('fetch', (event) => {
 
 
 
+## Type safety
+
+Exclude the service worker from your root `tsconfig.json` (which extends `$app/tsconfig`) and give it its own `tsconfig.json` extending `$app/tsconfig/service-worker`:
+
+```json
+/// file: tsconfig.json
+{
+	"extends": "$app/tsconfig",
+	"include": ["src", "test"],
+	"exclude": ["src/service-worker"]
+}
+```
+
+```json
+/// file: src/service-worker/tsconfig.json
+{
+	"extends": "$app/tsconfig/service-worker"
+}
+```
+
 ## Manual registration
 
-You can [disable automatic registration](configuration#serviceWorker) if you need to register the service worker with your own logic. The default registration looks something like this:
+You can [disable automatic registration](configuration#serviceWorker) if you need to register the service worker with your own logic. In SvelteKit 3 the service worker is always registered as a module:
 
 ```js
-import { dev } from '$app/environment';
-
 if ('serviceWorker' in navigator) {
 	addEventListener('load', function () {
 		navigator.serviceWorker.register('./path/to/service-worker.js', {
-			type: dev ? 'module' : 'classic'
+			type: 'module'
 		});
 	});
 }
@@ -164,10 +183,6 @@ For more general information on service workers, we recommend [the MDN web docs]
 
 # Observability
 
-<blockquote class="since note">
-	<p>Available since 2.31</p>
-</blockquote>
-
 Sometimes, you may need to observe how your application is behaving in order to improve performance or find the root cause of a pesky bug. To help with this, SvelteKit can emit server-side [OpenTelemetry](https://opentelemetry.io) spans for the following:
 
 - The [`handle`](hooks#handle) hook and `handle` functions running in a [`sequence`](@sveltejs-kit-hooks#sequence) (these will show up as children of each other and the root `handle` hook)
@@ -175,28 +190,24 @@ Sometimes, you may need to observe how your application is behaving in order to 
 - [Form actions](form-actions)
 - [Remote functions](remote-functions)
 
-Just telling SvelteKit to emit spans won't get you far, though — you need to actually collect them somewhere to be able to view them. SvelteKit provides `src/instrumentation.server.ts` as a place to write your tracing setup and instrumentation code. It's guaranteed to be run prior to your application code being imported, providing your deployment platform supports it and your adapter is aware of it.
+Just telling SvelteKit to emit spans won't get you far, though — you need to actually collect them somewhere to be able to view them. Add a `src/instrumentation.server.ts` file with your tracing setup — in SvelteKit 3 server-side instrumentation runs automatically whenever this file exists.
 
-Both of these features are currently experimental, meaning they are likely to contain bugs and are subject to change without notice. You must opt in by adding the `kit.experimental.tracing.server` and `kit.experimental.instrumentation.server` option in your `svelte.config.js`:
+To emit spans, opt in with the top-level `tracing.server` option of the `sveltekit(...)` plugin:
 
 ```js
-/// file: svelte.config.js
+/// file: vite.config.js
 // @errors: 2353
-/** @type {import('@sveltejs/kit').Config} */
-const config = {
-	kit: {
-		experimental: {
+import { sveltekit } from '@sveltejs/kit/vite';
+
+export default {
+	plugins: [
+		sveltekit({
 			tracing: {
 				server: true
-			},
-			instrumentation: {
-				server: true
 			}
-		}
-	}
+		})
+	]
 };
-
-export default config;
 ```
 
 
@@ -205,17 +216,17 @@ export default config;
 SvelteKit provides access to the `root` span and the `current` span on the request event. The root span is the one associated with your root `handle` function, and the current span could be associated with `handle`, `load`, a form action, or a remote function, depending on the context. You can annotate these spans with any attributes you wish to record:
 
 ```js
-/// file: $lib/authenticate.ts
+/// file: #lib/authenticate.ts
 
 // @filename: ambient.d.ts
-declare module '$lib/auth-core' {
+declare module '#lib/auth-core.js' {
 	export function getAuthenticatedUser(): Promise<{ id: string }>
 }
 
 // @filename: index.js
 // ---cut---
 import { getRequestEvent } from '$app/server';
-import { getAuthenticatedUser } from '$lib/auth-core';
+import { getAuthenticatedUser } from '#lib/auth-core.js';
 
 async function authenticate() {
 	const user = await getAuthenticatedUser();
@@ -228,7 +239,7 @@ async function authenticate() {
 
 To view your first trace, you'll need to set up a local collector. We'll use [Jaeger](https://www.jaegertracing.io/docs/getting-started/) in this example, as they provide an easy-to-use quickstart command. Once your collector is running locally:
 
-- Turn on the experimental flags mentioned earlier in your `svelte.config.js` file
+- Enable `tracing.server` as shown above and create `src/instrumentation.server.js`
 - Use your package manager to install the dependencies you'll need:
   ```sh
   npm i @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-proto import-in-the-middle
@@ -341,7 +352,7 @@ afterNavigate(() => {
 });
 ```
 
-You can also programmatically navigate to a different page using the [`goto`]($app-navigation#goto) function. By default, this will have the same client-side routing behavior as clicking on a link. However, `goto` also accepts a `keepFocus` option that will preserve the currently-focused element instead of resetting focus. If you enable this option, make sure the currently-focused element still exists on the page after navigation. If the element no longer exists, the user's focus will be lost, making for a confusing experience for assistive technology users.
+You can also programmatically navigate to a different page using the [`goto`]($app-navigation#goto) function. By default, this will have the same client-side routing behavior as clicking on a link. However, `goto` also accepts a `reset: false` option (which replaced the old `keepFocus`/`noScroll` options) that will preserve the currently-focused element instead of resetting focus. If you enable this option, make sure the currently-focused element still exists on the page after navigation. If the element no longer exists, the user's focus will be lost, making for a confusing experience for assistive technology users.
 
 ## The "lang" attribute
 
@@ -369,7 +380,7 @@ export function get_lang(event: import('@sveltejs/kit').RequestEvent) {
 // @filename: hooks.server.js
 import { get_lang } from './utils';
 // ---cut---
-/** @type {import('@sveltejs/kit').Handle} */
+/** @type {import('@sveltejs/kit/hooks').Handle} */
 export function handle({ event, resolve }) {
 	return resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('%lang%', get_lang(event))

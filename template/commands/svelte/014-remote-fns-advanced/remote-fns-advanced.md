@@ -14,14 +14,14 @@ On the server, the callback receives an array of the arguments the function was 
 ```js
 /// file: weather.remote.js
 // @filename: ambient.d.ts
-declare module '$lib/server/database' {
+declare module '#lib/server/database.js' {
 	export function sql(strings: TemplateStringsArray, ...values: any[]): Promise<any[]>;
 }
 // @filename: index.js
 // ---cut---
 import * as v from 'valibot';
 import { query } from '$app/server';
-import * as db from '$lib/server/database';
+import * as db from '#lib/server/database.js';
 
 export const getWeather = query.batch(v.string(), async (cityIds) => {
 	const weather = await db.sql`
@@ -99,7 +99,7 @@ If you need direct, imperative access to the underlying stream of values (rather
 
 ```js
 // @filename: time.remote.ts
-import { RemoteLiveQueryFunction } from '@sveltejs/kit';
+import { RemoteLiveQueryFunction } from '$app/server';
 export declare const getTime: RemoteLiveQueryFunction<undefined, Date>;
 // @errors: 2304
 // @filename: index.js
@@ -125,11 +125,11 @@ The `form` function makes it easy to write data to the server. It takes a callba
 ```ts
 /// file: src/routes/blog/data.remote.js
 // @filename: ambient.d.ts
-declare module '$lib/server/database' {
+declare module '#lib/server/database.js' {
 	export function sql(strings: TemplateStringsArray, ...values: any[]): Promise<any[]>;
 }
 
-declare module '$lib/server/auth' {
+declare module '#lib/server/auth.js' {
 	interface User {
 		name: string;
 	}
@@ -144,8 +144,8 @@ declare module '$lib/server/auth' {
 import * as v from 'valibot';
 import { error, redirect } from '@sveltejs/kit';
 import { query, form } from '$app/server';
-import * as db from '$lib/server/database';
-import * as auth from '$lib/server/auth';
+import * as db from '#lib/server/database.js';
+import * as auth from '#lib/server/auth.js';
 
 export const getPosts = query(async () => { /* ... */ });
 
@@ -367,7 +367,7 @@ In addition to declarative schema validation, you can programmatically mark fiel
 // @errors: 18046
 /// file: src/routes/shop/data.remote.js
 // @filename: ambient.d.ts
-declare module '$lib/server/database' {
+declare module '#lib/server/database.js' {
 	export function buy(qty: number): Promise<void>
 }
 // @filename: index.js
@@ -375,7 +375,7 @@ declare module '$lib/server/database' {
 import * as v from 'valibot';
 import { invalid } from '@sveltejs/kit';
 import { form } from '$app/server';
-import * as db from '$lib/server/database';
+import * as db from '#lib/server/database.js';
 
 export const buyHotcakes = form(
 	v.object({
@@ -590,7 +590,7 @@ Unfortunately, life isn't always as simple as the preceding example. The server 
 SvelteKit makes this easy by allowing the client to _request_ that the server updates specific data using `submit().updates` (for `form`) or `myCommand().updates` (for `command`):
 
 ```ts
-import type { RemoteQueryUpdate, RemoteQuery } from '@sveltejs/kit';
+import type { RemoteQueryUpdate, RemoteQuery } from '$app/server';
 interface Post {}
 declare function submit(): Promise<any> & {
 	updates(...updates: RemoteQueryUpdate[]): Promise<any>;
@@ -644,7 +644,7 @@ export const createPost = form(
 Additionally, `requested` allows a simple shorthand when all you want to do is refresh the requested query instances:
 
 ```ts
-import type { RemoteQueryFunction } from '@sveltejs/kit';
+import type { RemoteQueryFunction } from '$app/server';
 import { requested } from '$app/server';
 declare const getPosts: RemoteQueryFunction<any, any>;
 // ---cut---
@@ -663,17 +663,22 @@ As long as _you're_ not passing invalid data to your remote functions, there are
 - the function signature changed between deployments, and some users are currently on an older version of your app
 - someone is trying to attack your site by poking your exposed endpoints with bad data
 
-In the second case, we don't want to give the attacker any help, so SvelteKit will generate a generic [400 Bad Request](https://http.dog/400) response. You can control the message by implementing the [`handleValidationError`](hooks#handleValidationError) server hook, which, like [`handleError`](hooks#handleError), must return an [`App.Error`](errors#Type-safety) (which defaults to `{ message: string }`):
+In the second case, we don't want to give the attacker any help, so SvelteKit will generate a generic [400 Bad Request](https://http.dog/400) response. Validation failures pass through the server [`handleError`](hooks#handleError) hook with `kind: 'validation'`, an `error` object containing `{ status, message }`, and the validation `issues`. Use the issues to log the failure or customise the response:
 
 ```js
 /// file: src/hooks.server.js
-/** @type {import('@sveltejs/kit').HandleValidationError} */
-export function handleValidationError({ event, issues }) {
-	return {
-		message: 'Nice try, hacker!'
-	};
+/** @type {import('@sveltejs/kit/hooks').HandleServerError} */
+export function handleError({ kind, issues }) {
+	if (kind === 'validation') {
+		console.error(issues);
+		return {
+			message: 'Nice try, hacker!'
+		};
+	}
 }
 ```
+
+Be thoughtful about exposing validation issues — returning `error` unchanged is safe, because unlike `issues` it only contains the generic status and message.
 
 If you know what you're doing and want to opt out of validation, you can pass the string `'unchecked'` in place of a schema:
 
@@ -689,19 +694,13 @@ export const getStuff = query('unchecked', async ({ id }: { id: string }) => {
 
 ## invalid
 
-<blockquote class="since note">
-
-Available since 2.47.3
-
-</blockquote>
-
 Use this to throw a validation error to imperatively fail form validation.
 Can be used in combination with `issue` passed to form actions to create field-specific issues.
 
 ```ts
 import { invalid } from '@sveltejs/kit';
 import { form } from '$app/server';
-import { tryLogin } from '$lib/server/auth';
+import { tryLogin } from '#lib/server/auth.js';
 import * as v from 'valibot';
 
 export const login = form(

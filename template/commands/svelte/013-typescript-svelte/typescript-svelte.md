@@ -47,16 +47,19 @@ To use non-type-only TypeScript features within Svelte components, you need to a
 If you're using SvelteKit, or Vite _without_ SvelteKit, you can use `vitePreprocess` from `@sveltejs/vite-plugin-svelte` in your config file:
 
 ```ts
-/// file: svelte.config.js
+/// file: vite.config.js
 // @noErrors
+import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
-const config = {
-	// Note the additional `{ script: true }`
-	preprocess: vitePreprocess({ script: true })
+export default {
+	plugins: [
+		sveltekit({
+			// Note the additional `{ script: true }`
+			preprocess: vitePreprocess({ script: true })
+		})
+	]
 };
-
-export default config;
 ```
 
 ### Using other build tools

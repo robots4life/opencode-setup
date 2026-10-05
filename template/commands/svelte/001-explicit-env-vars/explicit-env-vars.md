@@ -1,32 +1,19 @@
 ---
-description: SvelteKit 2.63+ explicit environment variables — src/env.ts, $app/env/private, $app/env/public, validation
+description: SvelteKit 3 explicit environment variables — src/env.ts, $app/env/private, $app/env/public, validation
 ---
 
-## Explicit environment variables
+## Environment variables
 
-As of SvelteKit 2.63, you can opt into _explicit_ environment variables, in which case you instead import environment variables from these modules:
+In SvelteKit 3, environment variables are _explicit_ by default. Import them from these modules:
 
 - [`$app/env/private`]($app-env-private)
 - [`$app/env/public`]($app-env-public)
 
-Additionally, the [`$app/environment`]($app-environment) module is renamed to [`$app/env`]($app-env).
+The [`$app/environment`]($app-environment) module is renamed to [`$app/env`]($app-env). The old `$env/*` modules are deprecated in SvelteKit 3 and will be removed in SvelteKit 4.
 
 ### Setup
 
-To opt in, update your configuration...
-
-```js
-/// file: svelte.config.js
-export default {
-	kit: {
-		experimental: {
-			+++explicitEnvironmentVariables: true+++
-		}
-	}
-};
-```
-
-...and add a `src/env.ts` (or `src/env.js`) file that exports a `variables` object:
+Add a `src/env.ts` (or `src/env.js`) file that exports a `variables` object:
 
 ```ts
 /// file: src/env.ts
@@ -168,7 +155,7 @@ Because this variable is `static`, the `<DebugOverlay>` component shown here wil
 ```svelte
 <script>
 	import { SHOW_DEBUG_OVERLAY } from '$app/env/public';
-	import DebugOverlay from '$lib/components/DebugOverlay.svelte';
+	import DebugOverlay from '#lib/components/DebugOverlay.svelte';
 </script>
 
 {#if SHOW_DEBUG_OVERLAY}
